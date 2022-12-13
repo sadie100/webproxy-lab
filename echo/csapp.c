@@ -821,8 +821,10 @@ int open_clientfd(char *hostname, char *port) {
     if ((clientfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) < 0)
       continue; /* Socket failed, try the next */
 
+    // 소켓 생성 성공하면 서버와 연결 시도
     /* Connect to the server */
     if (connect(clientfd, p->ai_addr, p->ai_addrlen) != -1) break; /* Success */
+    // connect 성공하면 함수 종료, 실패하면 열렸던 fd close 처리
     if (close(clientfd) < 0) {
       /* Connect failed, try another */  // line:netp:openclientfd:closefd
       fprintf(stderr, "open_clientfd: close failed: %s\n", strerror(errno));
@@ -854,9 +856,16 @@ int open_listenfd(char *port) {
 
   /* Get a list of potential server addresses */
   memset(&hints, 0, sizeof(struct addrinfo));
+  // SOCK_STREAM : TCP 연결을 나타내는 상수
   hints.ai_socktype = SOCK_STREAM;             /* Accept connections */
   hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG; /* ... on any IP address */
   hints.ai_flags |= AI_NUMERICSERV;            /* ... using port number */
+  /*
+  getaddrinfo : 호스트 이름이나 주소, 포트번호나 서비스 이름을 받아서 socket
+  address 구조체로 반환해 주는 함수.
+  해당 정보들에 대응되는 소켓 주소 구조체를 가리키는 addrinfo 구조체의 연결
+  리스트 포인터 리턴
+  */
   if ((rc = getaddrinfo(NULL, port, &hints, &listp)) != 0) {
     fprintf(stderr, "getaddrinfo failed (port %s): %s\n", port,
             gai_strerror(rc));
@@ -866,6 +875,7 @@ int open_listenfd(char *port) {
   /* Walk the list for one that we can bind to */
   for (p = listp; p; p = p->ai_next) {
     /* Create a socket descriptor */
+    // 소켓 생성
     if ((listenfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) < 0)
       continue; /* Socket failed, try the next */
 
@@ -875,8 +885,15 @@ int open_listenfd(char *port) {
                (const void *)&optval, sizeof(int));
 
     /* Bind the descriptor to the address */
+    /*
+    bind 작업
+    bind : 서버의 소켓 주소와 소켓 descriptor를 연결하기 위해 커널에 물어보는
+    작업 프로그램이 호스팅할 특정 서비스를 지정함
+    */
     if (bind(listenfd, p->ai_addr, p->ai_addrlen) == 0) break; /* Success */
+    // bind가 실패한 경우, close 처리
     if (close(listenfd) < 0) { /* Bind failed, try the next */
+      // close도 실패한 경우, 에러 처리
       fprintf(stderr, "open_listenfd close failed: %s\n", strerror(errno));
       return -1;
     }
