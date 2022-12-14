@@ -225,13 +225,16 @@ void serve_static(int fd, char *filename, int filesize) {
   // srcfd는 response body
   srcfd = Open(filename, O_RDONLY, 0);
   // 파일을 가상메모리 영역으로 맵핑
-  srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);
+  // srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);
+  srcp = (char *)Malloc(filesize);
+  Rio_readn(srcfd, srcp, filesize);
   // 맵핑 후 파일은 필요 없으므로 파일 닫기
   Close(srcfd);
   // fd에 srcp부터 filesize까지의 자리를 복사
   Rio_writen(fd, srcp, filesize);
   // mmap으로 만들어진 맵핑 제거
-  Munmap(srcp, filesize);
+  // Munmap(srcp, filesize);
+  free(srcp);
 }
 
 /*
