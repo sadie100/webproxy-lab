@@ -9,7 +9,7 @@ int main(void) {
   buf는 환경변수 추출해서 담는 변수
   p는 buf 스트링에서 인자값 구분 문자(&)의 위치를 담을 포인터 변수
   */
-  char *buf, *p;
+  char *buf, *p, *method;
   /*
    arg1와 arg2는 인자의 숫자가 들어갈 변수, content는 response body에 들어갈
    html 코드를 담을 변수
@@ -34,6 +34,8 @@ int main(void) {
     n2 = atoi(arg2);
   }
 
+  method = getenv("REQUEST_METHOD");
+
   // response body 만들기
   // sprintf(s, format string) : s에 formatted된 string을 담기
   sprintf(content, "QUERY_STRING=%s", buf);
@@ -48,7 +50,9 @@ int main(void) {
   printf("Connection: close\r\n");
   printf("Content-length: %d\r\n", (int)strlen(content));
   printf("Content-type: text/html\r\n\r\n");
-  printf("%s", content);
+  if (strcasecmp(method, "HEAD") != 0) {
+    printf("%s", content);
+  }
   // fflush : 스트림을 비우는 함수.
   fflush(stdout);
 

@@ -11,9 +11,9 @@
 void doit(int fd);
 void read_requesthdrs(rio_t *rp);
 int parse_uri(char *uri, char *filename, char *cgiargs);
-void serve_static(int fd, char *filename, int filesize);
+void serve_static(int fd, char *filename, int filesize, char *method);
 void get_filetype(char *filename, char *filetype);
-void serve_dynamic(int fd, char *filename, char *cgiargs);
+void serve_dynamic(int fd, char *filename, char *cgiargs, char *method);
 void clienterror(int fd, char *cause, char *errnum, char *shortmsg,
                  char *longmsg);
 
@@ -70,7 +70,7 @@ void doit(int fd) {
   printf("%s", buf);
   // buf에 있는 문자들을 각각 method, uri, version에 저장
   sscanf(buf, "%s %s %s", method, uri, version);
-  if (strcasecmp(method, "GET")) {
+  if (strcasecmp(method, "GET") && strcasecmp(method, "HEAD")) {
     /*
     만약 method가 "GET"과 같다면, strcasecmp는 0을 리턴 => 해당 조건문에
     들어오지 않음. 즉, 이 조건문은 method와 "GET"을 비교해서 서로 다를 경우를
@@ -105,7 +105,7 @@ void doit(int fd) {
       return;
     }
     // static content 제공
-    serve_static(fd, filename, sbuf.st_size);
+    serve_static(fd, filename, sbuf.st_size, method);
   } else {
     // dynamic content 제공
     if (!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)) {
@@ -115,7 +115,7 @@ void doit(int fd) {
       return;
     }
     // dynamic content 제공
-    serve_dynamic(fd, filename, cgiargs);
+    serve_dynamic(fd, filename, cgiargs, method);
   }
 }
 
@@ -207,7 +207,7 @@ PNG, JPEG로 인코딩된 영상
 serve_static은 지역 파일의 내용을 포함해서 respond body를 설정하고 http 응답을
 보냄
 */
-void serve_static(int fd, char *filename, int filesize) {
+void serve_static(int fd, char *filename, int filesize, char *method) {
   int srcfd;
   char *srcp, filetype[MAXLINE], buf[MAXBUF];
   /* respond header 전송 */
@@ -221,6 +221,9 @@ void serve_static(int fd, char *filename, int filesize) {
   printf("Response headers:\n");
   printf("%s", buf);
 
+  if (strcasecmp(method, "HEAD") == 0) {
+    return;
+  }
   /* Send response body to client */
   // srcfd는 response body
   srcfd = Open(filename, O_RDONLY, 0);
@@ -256,7 +259,7 @@ void get_filetype(char *filename, char *filetype) {
     strcpy(filetype, "text/plain");
 }
 
-void serve_dynamic(int fd, char *filename, char *cgiargs) {
+void serve_dynamic(int fd, char *filename, char *cgiargs, char *method) {
   char buf[MAXLINE], *emptylist[] = {NULL};
   /* Return first part of HTTP response */
   // buf에 http 응답을 입력
@@ -276,6 +279,7 @@ void serve_dynamic(int fd, char *filename, char *cgiargs) {
     /* Real server would set all CGI vars here */
     // cgiargs를 쿼리스트링 환경변수로 정의
     setenv("QUERY_STRING", cgiargs, 1);
+    setenv("REQUEST_METHOD", method, 1);
     // 자식의 표준 출력을 fd로 재지정
     // => 자식 컨텍스트(CGI 프로그램)에서 표준 출력에 쓰는 모든 것은 직접
     // 클라이언트 프로세스로 전달됨.
