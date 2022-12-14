@@ -26,9 +26,9 @@ int main(void) {
     *p = '\0';
     // strcpy(dest, source) : source값을 dest로 복사
     // \0이 나오기 전까지의 string을 arg1에 복사
-    strcpy(arg1, buf);
+    strcpy(arg1, buf + 5);
     // \0 이후부터의 문자열을 arg2에 복사
-    strcpy(arg2, p + 1);
+    strcpy(arg2, p + 6);
     // atoi : string을 int로 형변환
     n1 = atoi(arg1);
     n2 = atoi(arg2);
