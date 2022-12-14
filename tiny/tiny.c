@@ -25,13 +25,19 @@ void clienterror(int fd, char *cause, char *errnum, char *shortmsg,
     - 트랜잭션을 수행
     - 자신 쪽의 연결 끝을 닫음
 */
-int main(int argc, char **argv) {
+/*
+argc : 인자 개수, argv : 들어오는 인자
+main을 실행하면 기본으로 파일 경로가 첫 번째 인자로 들어감
+배열들의 배열이라서 **가 붙음(=*argc[])
+*/
+int main(int argc, char *argv[]) {
   int listenfd, connfd;
   char hostname[MAXLINE], port[MAXLINE];
   socklen_t clientlen;
   struct sockaddr_storage clientaddr;
 
   /* Check command line args */
+  // 만약 인자 수가 2가 아니면 exit 처리
   if (argc != 2) {
     fprintf(stderr, "usage: %s <port>\n", argv[0]);
     exit(1);
@@ -56,7 +62,6 @@ int main(int argc, char **argv) {
 void doit(int fd) {
   // 요청이 static인지 판별하는 변수
   int is_static;
-  // ?
   struct stat sbuf;
   char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
   char filename[MAXLINE], cgiargs[MAXLINE];
